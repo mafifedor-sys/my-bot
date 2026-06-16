@@ -16,7 +16,7 @@ def send_telegram(text):
     try:
         r = requests.post(url, data={"chat_id": TELEGRAM_CHAT_ID, "text": text}, timeout=30)
         if r.status_code == 200:
-            print(f"✅ Отправлено: {text[:50]}...")
+            print(f"✅ Отправлено")
     except Exception as e:
         print(f"❌ Ошибка: {e}")
 
@@ -25,39 +25,32 @@ def on_message(ws, message):
         data = json.loads(message)
         print(f"📩 Получено: {data}")
         
-        # Проверяем разные форматы сообщений
-        if "message" in data:
-            msg = data["message"]
-            if msg.get("text"):
-                sender = msg.get("from", {}).get("name", "Неизвестный")
-                text = msg.get("text", "")
-                send_telegram(f"📩 {sender}: {text}")
-        elif "text" in data and "from" in data:
-            sender = data.get("from", {}).get("name", "Неизвестный")
-            text = data.get("text", "")
-            send_telegram(f"📩 {sender}: {text}")
-        elif "body" in data:
-            send_telegram(f"📩 {data}")
+        # Проверяем разные форматы
+        if "body" in data:
+            send_telegram(f"📩 {data['body']}")
+        elif "text" in data:
+            send_telegram(f"📩 {data['text']}")
+        elif "message" in data and "text" in data["message"]:
+            send_telegram(f"📩 {data['message']['text']}")
     except Exception as e:
-        print(f"⚠️ Ошибка: {e}")
+        print(f"⚠️ Ошибка обработки: {e}")
 
 def on_error(ws, error):
     print(f"⚠️ Ошибка: {error}")
 
 def on_close(ws, close_status_code, close_msg):
-    print("🔌 Отключено")
-    # Переподключаемся через 5 секунд
+    print("🔌 Отключено. Переподключение через 5 секунд...")
     time.sleep(5)
     connect_websocket()
 
 def on_open(ws):
-    print("✅ Подключено")
-    send_telegram("✅ Подключение к Макс установлено")
+    print("✅ Подключено к MAX")
+    send_telegram("✅ Подключение к MAX установлено")
 
 def connect_websocket():
     try:
-        # Правильный формат WebSocket с токеном в URL
-        ws_url = f"wss://web.max.ru/socket.io/?EIO=3&transport=websocket&token={MAX_TOKEN}"
+        # ПРАВИЛЬНЫЙ URL для WebSocket MAX
+        ws_url = f"wss://web.max.ru/socket.io/?EIO=4&transport=websocket&token={MAX_TOKEN}"
         
         ws = websocket.WebSocketApp(ws_url,
                                     on_open=on_open,
@@ -66,7 +59,7 @@ def connect_websocket():
                                     on_close=on_close)
         ws.run_forever()
     except Exception as e:
-        send_telegram(f"❌ Ошибка: {e}")
+        print(f"❌ Ошибка подключения: {e}")
         time.sleep(5)
         connect_websocket()
 
@@ -74,7 +67,7 @@ if __name__ == "__main__":
     send_telegram("🚀 Бот запущен")
     
     if not MAX_TOKEN:
-        send_telegram("❌ Токен Макс не найден")
+        send_telegram("❌ Токен MAX не найден")
     else:
-        send_telegram("✅ Токен Макс найден")
+        send_telegram("✅ Токен MAX найден")
         connect_websocket()

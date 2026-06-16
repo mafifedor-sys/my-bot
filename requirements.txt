@@ -1,2 +1,2 @@
+pymax
 requests
-max-api-python

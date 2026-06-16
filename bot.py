@@ -22,12 +22,24 @@ def send_telegram(text):
         print(f"❌ Ошибка: {e}")
 
 def get_max_messages():
+    """Проверяет подключение к Макс через API"""
     try:
-        headers = {"Authorization": f"Bearer {MAX_TOKEN}"}
-        url = "https://web.max.ru/api/v1/messages"  # Правильный эндпоинт
+        # Используем правильный адрес API Макс
+        url = "https://api.max.ru/v1/messages"
+        headers = {
+            "Authorization": f"Bearer {MAX_TOKEN}",
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
         r = requests.get(url, headers=headers, timeout=10)
-        return r.json() if r.status_code == 200 else None
-    except:
+        
+        if r.status_code == 200:
+            return r.json()
+        else:
+            send_telegram(f"⚠️ Ошибка API Макс: {r.status_code}")
+            return None
+    except Exception as e:
+        send_telegram(f"⚠️ Ошибка подключения: {e}")
         return None
 
 if __name__ == "__main__":
@@ -35,17 +47,18 @@ if __name__ == "__main__":
     send_telegram("✅ Бот запущен и работает!")
     
     # Проверка токена Макс
-    if MAX_TOKEN:
-        send_telegram("✅ Токен Макс найден")
-        # Проверяем подключение
-        msgs = get_max_messages()
-        if msgs:
-            send_telegram("✅ Подключение к Макс успешно")
-        else:
-            send_telegram("⚠️ Не удалось подключиться к Макс. Проверьте токен.")
-    else:
+    if not MAX_TOKEN:
         send_telegram("❌ Токен Макс не добавлен в переменные окружения")
+    else:
+        send_telegram("✅ Токен Макс найден")
+        
+        # Пробуем подключиться к API
+        result = get_max_messages()
+        if result is not None:
+            send_telegram("✅ Подключение к Макс успешно!")
+            send_telegram(f"📊 Получено сообщений: {len(result)}")
+        else:
+            send_telegram("⚠️ Не удалось подключиться к Макс. Возможно, токен устарел или неправильный эндпоинт.")
     
-    # Бесконечный цикл
     while True:
         time.sleep(60)
